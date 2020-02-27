@@ -1,0 +1,6 @@
+*.o
+*.so
+.clang-format
+.ccls-cache
+node_modules
+package-lock.json
