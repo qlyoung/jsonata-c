@@ -18,10 +18,10 @@ fuzz:
 duktape.o: duktape.c duktape.h duk_config.h
 	$(CC) $(local_CFLAGS) $(CFLAGS) $(local_LDFLAGS) $(LDFLAGS) -c -o duktape.o src/duktape.c
 
-jsonata.h: jsonata
-	$(shell cat jsonata/jsonata-es5.js | base64 | sed 's/$$/\\/g' | sed -e '/.*REPLACE_ME/ {' -e 'r /dev/stdin' -e 'd' -e '}' src/jsonata.h.template > src/jsonata.h)
+jsonata.h: jsonata-es5.min.js
+	$(shell cat jsonata/jsonata-es5.min.js | base64 | sed 's/$$/\\/g' | sed -e '/.*REPLACE_ME/ {' -e 'r /dev/stdin' -e 'd' -e '}' src/jsonata.h.template > src/jsonata.h)
 
-jsonata: $(shell find jsonata -type f)
+jsonata-es5.min.js:
 	cd jsonata; npm install; npm run build-es5
 
 check: jsonata.so
