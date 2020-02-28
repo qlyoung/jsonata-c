@@ -22,7 +22,7 @@ jsonata.h: jsonata-es5.min.js
 	$(shell cat jsonata/jsonata-es5.min.js | base64 | sed 's/$$/\\/g' | sed -e '/.*REPLACE_ME/ {' -e 'r /dev/stdin' -e 'd' -e '}' src/jsonata.h.template > src/jsonata.h)
 
 jsonata-es5.min.js:
-	cd jsonata; npm install; npm run build-es5
+	cd jsonata; npm install; npm run build-es5; cp jsonata-es5.min.js ../src/
 
 check: jsonata.so
 	python3 -m pytest
