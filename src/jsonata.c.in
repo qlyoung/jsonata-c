@@ -14,6 +14,16 @@
 #include "duktape.h"
 #include "jsonata.h"
 
+/* clang-format off */
+
+/*
+ * Replaced at build time with $(base64 jsonata-es5.min.js)
+ */
+const char jsonata_b64[] = "\
+__REPLACE_ME__\
+";
+/* clang-format on */
+
 static const unsigned char base64_table[65] =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -27,8 +37,8 @@ static const unsigned char base64_table[65] =
  *
  * Caller is responsible for freeing the returned buffer.
  */
-unsigned char *base64_decode(const unsigned char *src, size_t len,
-			     size_t *out_len)
+static unsigned char *base64_decode(const unsigned char *src, size_t len,
+				    size_t *out_len)
 {
 	unsigned char dtable[256];
 	unsigned char block[4];
@@ -129,15 +139,15 @@ static void my_fatal(void *udata, const char *msg)
 	abort();
 }
 
-
-#define JSONATA_MAKE_ERRMSG(ec, message)                                       \
-	snprintf(error_buf, sizeof(error_buf), "%s: %s", error_strings[(ec)],  \
-		 (message))
-
 #ifdef FUZZING
 char *FuzzingJsonata;
 size_t FuzzingJsonataLen;
 #endif
+
+
+#define JSONATA_MAKE_ERRMSG(ec, message)                                       \
+	snprintf(error_buf, sizeof(error_buf), "%s: %s", error_strings[(ec)],  \
+		 (message))
 
 int free_result(char *result)
 {
@@ -145,48 +155,6 @@ int free_result(char *result)
 	return 0;
 }
 
-/*
- * Evaluate JSONata expression on JSON.
- *
- * expression
- *    JSONata expression
- *
- * json
- *    Input JSON
- *
- * result
- *    On success, the result of evaluating expression on json.
- *    NULL on failure.
- *
- * error
- *    On failure, is either NULL or a human readable error string describing
- *    the failure.
- *    NULL on success.
- *
- * Returns:
- *    0 on success
- *    JSONATA_ERR_* otherwise
- *
- *    Upon success:
- *       *result SHALL be set, and will point to the result string.
- *       The caller MUST free this string.
- *
- *       The value of *error is NULL.
- *
- *    Upon failure:
- *       *error MAY be set. If it is set, it points to a static error message.
- *       If not, it is GUARANTEED to be NULL. The caller MUST NOT free this
- *       string.
- *
- * 	 The value of *result is NULL.
- *
- *    So, in sum, as long as your free() is POSIX compliant and may be called
- *    on NULL pointers:
- *
- *    - ALWAYS free(*result)
- *    - NEVER free(*error)
- *
- */
 int jsonata(const char *expression, const char *json, char **result,
 	    const char **error)
 {
