@@ -1,11 +1,15 @@
 /*
- * Copyright (c) Quentin Young, 2020
+ * C bindings for the JavaScript implementation of JSONata.
+ *
+ * Copyright (C)  Quentin Young, 2020
+ * Portions:
+ * 	FreeBSD Authors
  */
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "duktape.h"
 #include "jsonata.h"
@@ -26,8 +30,13 @@ static const unsigned char base64_table[65] =
 unsigned char *base64_decode(const unsigned char *src, size_t len,
 			     size_t *out_len)
 {
-	unsigned char dtable[256], *out, *pos, block[4], tmp;
-	size_t i, count, olen;
+	unsigned char dtable[256];
+	unsigned char block[4];
+	unsigned char tmp;
+	unsigned char *out, *pos;
+	size_t i;
+	size_t olen;
+	size_t count = 0;
 	int pad = 0;
 
 	memset(dtable, 0x80, 256);
@@ -35,7 +44,6 @@ unsigned char *base64_decode(const unsigned char *src, size_t len,
 		dtable[base64_table[i]] = (unsigned char)i;
 	dtable['='] = 0;
 
-	count = 0;
 	for (i = 0; i < len; i++) {
 		if (dtable[src[i]] != 0x80)
 			count++;
@@ -83,6 +91,25 @@ unsigned char *base64_decode(const unsigned char *src, size_t len,
 	return out;
 }
 
+#define JSONATA_SUCCESS 0
+#define JSONATA_ERR_UNSPEC 1
+#define JSONATA_ERR_OOM 2
+#define JSONATA_ERR_JSON_INVALID 3
+#define JSONATA_ERR_INTERNAL_ERR 4
+#define JSONATA_ERR_INVALID_ARGS 5
+#define JSONATA_ERR_DUKTAPE_ERR 6
+
+static const char *error_strings[] = {
+	[JSONATA_ERR_UNSPEC] = "Unknown error",
+	[JSONATA_ERR_OOM] = "Can't allocate memory",
+	[JSONATA_ERR_JSON_INVALID] = "Invalid JSON",
+	[JSONATA_ERR_INTERNAL_ERR] = "Internal error",
+	[JSONATA_ERR_INVALID_ARGS] = "Invalid arguments",
+	[JSONATA_ERR_DUKTAPE_ERR] = "Duktape error",
+};
+
+static char error_buf[BUFSIZ];
+
 /*
  * Handle fatal errors in Duktape.
  *
@@ -102,25 +129,6 @@ static void my_fatal(void *udata, const char *msg)
 	abort();
 }
 
-
-#define JSONATA_SUCCESS 0
-#define JSONATA_ERR_UNSPEC 1
-#define JSONATA_ERR_OOM 2
-#define JSONATA_ERR_JSON_INVALID 3
-#define JSONATA_ERR_INTERNAL_ERR 4
-#define JSONATA_ERR_INVALID_ARGS 5
-#define JSONATA_ERR_DUKTAPE_ERR 6
-
-static const char *error_strings[] = {
-	[JSONATA_ERR_UNSPEC] = "Unknown error",
-	[JSONATA_ERR_OOM] = "Can't allocate memory",
-	[JSONATA_ERR_JSON_INVALID] = "Invalid JSON",
-	[JSONATA_ERR_INTERNAL_ERR] = "Internal error",
-	[JSONATA_ERR_INVALID_ARGS] = "Invalid arguments",
-	[JSONATA_ERR_DUKTAPE_ERR] = "Duktape error",
-};
-
-static char error_buf[BUFSIZ];
 
 #define JSONATA_MAKE_ERRMSG(ec, message)                                       \
 	snprintf(error_buf, sizeof(error_buf), "%s: %s", error_strings[(ec)],  \
@@ -244,10 +252,11 @@ int jsonata(const char *expression, const char *json, char **result,
 	}
 
 	tc = ot = expression_clean;
-	do
+
+	do {
 		while (*tc == '\n')
 			++tc;
-	while ((*ot++ = *tc++));
+	} while ((*ot++ = *tc++));
 
 	/* Compute program buffer size */
 	progbufsz = strlen(expression_clean);
