@@ -66,7 +66,7 @@ provide an expression to use. For example, for the expression target:
 
 ## Usage
 
-```
+```c
 const char my_expr = "$";
 const char my_json = "{'hello': 'world'}"
 char *result;
